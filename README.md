@@ -1,2 +1,2 @@
-# Norfolk-the-Discord-bot
-A bot fot the Imperial College Science Fiction and Fantasy Discord server. Based on discord.py (https://discordpy.readthedocs.io)
+# The-Punctuator
+A bot for the Punctuation conventions, based on [Norfolk the Discord bot](https://github.com/ICSF/Norfolk-the-Discord-bot) and [discord.py](https://discordpy.readthedocs.io/).
