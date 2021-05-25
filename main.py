@@ -14,12 +14,12 @@ client = discord.Client()
 async def on_ready():
     client.dbconn = sqlite3.connect('main.db')
     client.dbconn.row_factory = sqlite3.Row
-    client.picoguild = client.get_guild(807940337020567589)
+    client.picoguild = client.get_guild(831167686343000144)
     client.nodules = [picocoin.Nodule(client)]
     load()
 
     print('We have logged in as {0.user}'.format(client))
-    await client.change_presence(activity=discord.Game(name='such pico, much con'))
+    await client.change_presence(activity=discord.Game(name="Don't, misuse, commas."))
 
 
 def load():
@@ -35,7 +35,8 @@ async def on_message(message):
     if message.content.startswith('!nping'):
         await message.channel.send('npong!')
 
-    if message.content.startswith('!reload') and (message.author.id == 133647238235815936 or message.author.guild_permissions.administrator):
+    if message.content.startswith('!reload') and (message.author.id == 133647238235815936 or
+                                                  message.author.guild_permissions.administrator):
         print("Reloading Nodules")
         for n in _nodules:
             reload(n)
