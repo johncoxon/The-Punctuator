@@ -3,8 +3,8 @@ import secrets
 import sqlite3
 from importlib import reload
 
-from nodules import modmessage, treasure, picocoin, games, fish, sillyvoices, talks, cleverbot
-_nodules = (modmessage, treasure, games, fish, sillyvoices, talks, cleverbot)
+from nodules import modmessage, treasure#, picocoin, games, fish, sillyvoices, talks, cleverbot
+_nodules = (modmessage, treasure)#, games, fish, sillyvoices, talks, cleverbot)
 
 
 client = discord.Client()
@@ -15,7 +15,7 @@ async def on_ready():
     client.dbconn = sqlite3.connect('main.db')
     client.dbconn.row_factory = sqlite3.Row
     client.picoguild = client.get_guild(831167686343000144)
-    client.nodules = [picocoin.Nodule(client)]
+    client.nodules = []
     load()
 
     print('We have logged in as {0.user}'.format(client))
@@ -59,7 +59,7 @@ async def on_raw_reaction_add(payload):
 try:
     client.loop.run_until_complete(client.start(secrets.token))
 except KeyboardInterrupt:
-    client.loop.run_until_complete(client.logout())
+    client.loop.run_until_complete(client.close())
     # cancel all tasks lingering
 finally:
     client.dbconn.close()

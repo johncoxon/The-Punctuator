@@ -5,14 +5,18 @@ from discord import Embed, Colour
 class Nodule(CoreNodule):
     def __init__(self, client):
         self.roles = {
-            "🟨": 810245249711603782,
-            "🟥": 810245249711603782,
-            "🟩": 810245345094664243,
-            "🟦": 810245370742439946,
-            "⬛": 831167907769221140
+            "🟦": 854402152252047420,    # hemi-demi-semi-colon
+            "🟥": 854402714842824714,    # interrobang
+            "🟨": 854402714842824714,    # quasiquote
+            "🟩": 854402900046250036,    # sarcastrophe
         }
 
-        self.house_channels = {"⬛": 846827904502595605}
+        self.house_channels = {
+            "🟦": 854404551783088129,
+            "🟥": 854404623230173244,
+            "🟨": 854404586566713387,
+            "🟩": 853350268464267284,
+        }
 
         client.dbconn.execute('''CREATE TABLE IF NOT EXISTS "treasure" (
                                  "id" INTEGER UNIQUE,
@@ -49,65 +53,61 @@ class Nodule(CoreNodule):
                 cursor = self.client.dbconn.execute("SELECT * FROM teams WHERE teams.channel_id=?",
                                                     (message.channel.id,))
                 row = cursor.fetchone()
-                # name = row["name"]
                 team_id = row["id"]
-                print(team_id)
-                color = Colour.from_rgb(*tuple(int(row["color"][i + 1:i + 3], 16)
-                                               for i in (0, 2, 4)))
+                colour = get_colour(row["color"])
 
                 # List the things that have been collected
-                text = "**You've collected:**\n"
+                items_text = "**You've collected:**\n"
                 cursor = self.client.dbconn.execute(
                     "SELECT treasure.id, treasure.name, treasure.value FROM collected INNER JOIN "
                     "treasure ON treasure.id=collected.item WHERE collected.team = ?", (team_id,))
                 for row in cursor:
-                    text += "{:2d}. {} ({})\n".format(row["id"], row["name"], row["value"])
+                    items_text += f"{row['id']}. {row['name']} ({row['value']})\n"
 
                 # List things yet to collect
-                text += "\n**You can still collect:**\n"
+                items_text += "\n**You can still collect:**\n"
                 cursor = self.client.dbconn.execute(
                     "SELECT treasure.id, treasure.name, treasure.value FROM treasure LEFT JOIN "
                     "(SELECT * FROM collected WHERE collected.team=?) AS coll ON "
                     "coll.item=treasure.id WHERE coll.id IS NULL", (team_id,))
                 for row in cursor:
-                    text += "{:2d}. {} ({})\n".format(row["id"], row["name"], row["value"])
-                embed = Embed(title="The Scavenger Hunt", description=text, color=color)
-
-                # Point totals
-                cursor = self.client.dbconn.execute(
-                    "SELECT teams.name, sum(treasure.value) as points FROM collected INNER JOIN "
-                    "treasure ON collected.item = treasure.id INNER JOIN teams ON collected.team = "
-                    "teams.id GROUP BY collected.team")
-                for row in cursor:
-                    embed.add_field(name=row["name"], value="{:.2f}".format(row["points"]))
-                await message.channel.send(embed=embed)
+                    items_text += f"{row['id']}. {row['name']} ({row['value']})\n"
             else:
-                text = ""
+                items_text = ""
+                colour = get_colour("000000")
                 cursor = self.client.dbconn.execute("SELECT id, name, value FROM treasure")
                 for row in cursor:
-                    text += "{:2d}. **{}** ({})\n".format(row["id"], row["name"], row["value"])
+                    items_text += f"{row['id']}. {row['name']} ({row['value']})\n"
 
-                embed = Embed(title="The Scavenger Hunt", description=text,
-                              colour=Colour.from_rgb(194, 124, 14))
-                cursor = self.client.dbconn.execute("SELECT teams.name, sum(treasure.value) as "
-                                                    "points FROM collected INNER JOIN treasure ON "
-                                                    "collected.item = treasure.id INNER JOIN teams "
-                                                    "ON collected.team = teams.id GROUP BY "
-                                                    "collected.team")
-                for row in cursor:
-                    embed.add_field(name=row["name"], value="{:.2f}".format(row["points"]))
-                await message.channel.send(embed=embed)
+            items = Embed(title="The items.", description=items_text, color=colour)
+            await message.channel.send(embed=items)
 
-        if message_text.startswith('!collected') and message.author.guild_permissions.administrator:
-            if message.channel.id in self.house_channels.values():
+            points_text = ""
+            cursor = self.client.dbconn.execute(
+                "SELECT teams.name, sum(treasure.value) as points FROM collected INNER JOIN "
+                "treasure ON collected.item = treasure.id INNER JOIN teams ON collected.team = "
+                "teams.id GROUP BY collected.team")
+            for row in cursor:
+                points_text += f"**{row['name']}**\n{row['points']} points\n"
+
+            points = Embed(title="The points.", description=points_text, color=colour)
+            await message.channel.send(embed=points)
+
+        if message_text.startswith('!collected'):
+            # Check whether the author is in the right role
+            can_mark_collected = False
+            for role in message.author.roles:
+                if role.id == 854633129938386945:
+                    can_mark_collected = True
+
+            if can_mark_collected and message.channel.id in self.house_channels.values():
                 # Get team details
                 cursor = self.client.dbconn.execute("SELECT * FROM teams WHERE teams.channel_id=?",
                                                     (message.channel.id,))
                 row = cursor.fetchone()
-                # name = row["name"]
                 team_id = row["id"]
-                color = Colour.from_rgb(*tuple(int(row["color"][i + 1:i + 3], 16)
-                                               for i in (0, 2, 4)))
+                team_name = row["name"]
+                colour = get_colour(row["color"])
 
                 # Get item details
                 try:
@@ -125,7 +125,7 @@ class Nodule(CoreNodule):
                 cursor = self.client.dbconn.execute("SELECT * FROM collected WHERE team=? AND "
                                                     "item=?", (team_id, item_id,))
                 if cursor.fetchone():
-                    await message.channel.send("You have already collected this item.")
+                    await message.channel.send("This item has already been collected.")
                     return
 
                 # Insert the collection
@@ -142,9 +142,9 @@ class Nodule(CoreNodule):
                 total = row["points"]
 
                 # Send the embed
-                embed = Embed(description=f"You have collected **{item_name}** ({item_value} "
-                                          f"points). Your total is now {total:.2f} points!",
-                              color=color)
+                embed = Embed(description=f"{team_name.title()} has collected **{item_name}** "
+                                          f"({item_value}). Their total is now {total} points!",
+                              color=colour)
                 await message.channel.send(embed=embed)
 
     async def on_raw_reaction_add(self, payload):
@@ -161,3 +161,6 @@ class Nodule(CoreNodule):
                 row = cursor.fetchone()
                 await self.client.get_channel(row["channel_id"]).send(
                     "Welcome to Team **{}**, <@{}>!".format(row["name"], payload.member.id))
+
+def get_colour(hex_code):
+    return Colour.from_rgb(*tuple(int(hex_code[i:i + 2], 16) for i in (0, 2, 4)))
